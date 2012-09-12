@@ -17,30 +17,63 @@ object Bowling extends App {
     case STRIKE => nextrolls match {
       case Nil => 0
       case head::Nil => 0
-      case head::next => getFrameValue(head, next.head)
+      case head::next => {
+        val bonus = getFrameValue(head, next.head)
+        println("Strike bonus: " + bonus)
+        bonus
+      }
       case _ => 0
     }
-    case SPARE => getThrowValue(nextrolls.head)  // if it's a spare, there must be one more roll
+    case SPARE => {
+      val bonus = getThrowValue(nextrolls.head)
+      println("Spare bonus: " + bonus)
+      bonus
+    }  // if it's a spare, there must be one more roll
     case _ => 0
   }
 
-  def getTotalScore(scores: List[Char]):Int = scores match {
-    case Nil => 0
-    case s::ss => s match {
-      case STRIKE =>  ss match {
-        case Nil => getThrowValue(s)
-        case head::Nil => getThrowValue(s)
-        case head::next => getThrowValue(s) + getBonus(head, next) + getTotalScore(ss)
-      }
-      case _ => ss.head match {
-        case SPARE => 10 + getBonus(ss.head, ss.tail) + getTotalScore(ss.tail)
-        case _ => getFrameValue(s, ss.head) + getTotalScore(ss.tail)
+  def getTotalScore(scores: List[Char]):Int = {
+    println(scores)
+    scores match {
+      case Nil => 0
+      case head::Nil => 0
+      case head::tail => {
+        val bonus = {
+          head match {
+            case STRIKE => getBonus(head, tail)
+            case _ => {
+              tail.head match {
+                case SPARE => getBonus(tail.head, tail.tail)
+                case _ => 0
+              }
+            }
+          }
+        }
+        head match {
+          case STRIKE => {
+            println(10 + bonus)
+            10 + bonus + getTotalScore(tail)
+          }
+          case _ => {
+            val frameValue = getFrameValue(head, tail.head)
+            println(frameValue + bonus)
+            frameValue + bonus + getTotalScore(tail.tail)
+          }
+        }
       }
     }
   }
 
-   val scores: List[Char] = List('1', '0', '1', '/', '2', '2', 'X', '3', '3', 'X', '1', '/', '3', '/', 'X', '1', '2')
-   println(getTotalScore(scores))
-    val scores2: List[Char] = List('X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X', 'X')
-  println(getTotalScore(scores2))
+  def validateScore( scoreString: String ): Option[List[Char]] = {
+    val bowlRegex = """(X|\d(\d|/)){9}(X(X(X|\d)|\d(\d|/))|\d(\d|(/|(X|\d))))""".r
+    bowlRegex.findFirstIn(scoreString.toUpperCase).map(_.toCharArray.toList)
+  }
+
+  val score:Option[List[Char]] = validateScore(args(0))
+  score.flatMap((s:List[Char]) => println("Total score: " + getTotalScore(s))).getOrElse(println("Invalid score, try again."))
+  score match {
+    case None => println("Invalid score, try again.")
+    case Some(s) => println("Total score: " + getTotalScore(s))
+  }
+
 }
